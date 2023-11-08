@@ -25,7 +25,8 @@ module central_control_unit(
     output logic dig_anneal_sch_reg,
     output logic config_dig_langevin_ena,
     output logic [15:0] config_dig_langevin_res_bank_ctrl,
-    output logic final_run
+    output logic final_run,
+    output logic conf_sys_stat_reg_LOADING_DONE
 );
 
 
@@ -37,8 +38,7 @@ logic [7:0] rerun_time_interval;
 
 logic run_start_pos_edge_q, run_start_pos_edge_qq, run_start_pos_edge_qqq;//start dig_spin_fix_ena 3 cycles after run starts
 logic [4:0] config_dig_langevine_ena_cnt;
-logic [7:0] config_dig_spin_fix_ena_cnt_slow;
-logic [6:0] config_dig_spin_fix_ena_cnt;
+logic [7:0] config_dig_spin_fix_ena_cnt;
 logic config_dig_langevine_ena_cnt_start;
 logic config_dig_spin_fix_ena_cnt_start;
 logic [7:0] total_output_count;
@@ -79,18 +79,18 @@ assign run_start_pos_edge = !run_start_q && run_start;
 always_ff @(posedge i_clk or negedge i_rstn) begin
     if (~i_rstn) 
     begin
-        run_counter <= '0;
-        rerun_counter <= '0;
+        run_counter <= 8'd0;
+        rerun_counter <= 8'd0;
     end
     else if (conf_sys_ctrl_reg_RESET_pos_edge)
     begin
-        run_counter <= '0;
-        rerun_counter <= '0;
+        run_counter <= 8'd0;
+        rerun_counter <= 8'd0;
     end
     else if (run_start_pos_edge && !conf_sys_ctrl_reg_RERUN && (run_counter < conf_reg_total_run_count))//we don't increase run counter for a rerun
-        run_counter <= run_counter + 1;
+        run_counter <= run_counter + 8'd1;
     else if (run_start_pos_edge && conf_sys_ctrl_reg_RERUN && (rerun_counter < conf_reg_total_rerun_count))
-        rerun_counter <= rerun_counter + 1;
+        rerun_counter <= rerun_counter + 8'd1;
 end
 
 /////////////runtime counter & config_dig_spin_CCII_ena
@@ -206,13 +206,13 @@ assign config_dig_langevin_res_bank_ctrl = config_dig_langevin_ena ? (1 << confi
 always_ff @(posedge i_clk or negedge i_rstn)
     if(~i_rstn)
       begin
-        config_dig_spin_fix_ena_cnt_slow <= '0;
+        config_dig_spin_fix_ena_cnt <= '0;
         config_dig_spin_fix_ena_cnt_start <= '0;
         config_dig_spin_fix_ena <= '0;
       end
     else if (conf_sys_ctrl_reg_RESET_pos_edge)
     begin
-        config_dig_spin_fix_ena_cnt_slow <= '0;
+        config_dig_spin_fix_ena_cnt <= '0;
         config_dig_spin_fix_ena_cnt_start <= '0;
         config_dig_spin_fix_ena <= '0;
     end
@@ -221,21 +221,21 @@ always_ff @(posedge i_clk or negedge i_rstn)
         config_dig_spin_fix_ena_cnt_start <= 1'b1;
         config_dig_spin_fix_ena <= conf_fix_langevin_sel[1] ? 1'b1 : 1'b0;
       end
-    else if (config_dig_spin_fix_ena_cnt_start && (config_dig_spin_fix_ena_cnt_slow < (current_run_rerun_time - 8'd7)))
+    else if (config_dig_spin_fix_ena_cnt_start && (config_dig_spin_fix_ena_cnt < (current_run_rerun_time - 8'd7)))
       begin
-        config_dig_spin_fix_ena_cnt_slow <=  config_dig_spin_fix_ena_cnt_slow + 8'd1;
+        config_dig_spin_fix_ena_cnt <=  config_dig_spin_fix_ena_cnt + 8'd1;
         config_dig_spin_fix_ena_cnt_start <= 1'b1;
         config_dig_spin_fix_ena <= conf_fix_langevin_sel[1] ? 1'b1 : 1'b0;
       end
     else
       begin
-        config_dig_spin_fix_ena_cnt_slow <=  '0;
+        config_dig_spin_fix_ena_cnt <=  '0;
         config_dig_spin_fix_ena_cnt_start <= '0;
         config_dig_spin_fix_ena <= '0;
       end
 
 
-always_ff @(posedge ACLK or negedge i_rstn)
+/*always_ff @(posedge ACLK or negedge i_rstn)
     if(~i_rstn)
         config_dig_spin_fix_ena_cnt <= '0;
     else if (conf_sys_ctrl_reg_RESET_pos_edge)
@@ -245,7 +245,20 @@ always_ff @(posedge ACLK or negedge i_rstn)
     else if (~config_dig_spin_fix_ena)
         config_dig_spin_fix_ena_cnt <= '0;
   
-assign dig_anneal_sch_reg = config_dig_spin_fix_ena ? conf_dig_anneal_sch_reg[config_dig_spin_fix_ena_cnt] : 0;
+assign dig_anneal_sch_reg = config_dig_spin_fix_ena ? conf_dig_anneal_sch_reg[config_dig_spin_fix_ena_cnt] : 0;*/
+
+logic [127:0] conf_dig_anneal_sch_reg_shift;
+assign dig_anneal_sch_reg = config_dig_spin_fix_ena ? conf_dig_anneal_sch_reg_shift[0] : 1'b0;
+
+always_ff @(posedge ACLK or negedge i_rstn)
+    if(~i_rstn)
+        conf_dig_anneal_sch_reg_shift <= '0;
+    else if (conf_sys_ctrl_reg_RESET_pos_edge)
+        conf_dig_anneal_sch_reg_shift <= '0;
+    else if (config_dig_spin_fix_ena)
+        conf_dig_anneal_sch_reg_shift <= conf_dig_anneal_sch_reg_shift >> 1;
+    else if (~config_dig_spin_fix_ena)
+        conf_dig_anneal_sch_reg_shift <= conf_dig_anneal_sch_reg;
 
 ////////////config_dig_spin_read_out_ena: enable this one cycle before run/rerun ends 
 always_ff @(posedge i_clk or negedge i_rstn)
@@ -305,7 +318,7 @@ always_ff @(posedge i_clk or negedge i_rstn)
         start_programming_q <= conf_sys_ctrl_reg_RESET_pos_edge ? 0 : config_dig_spin_prog_ic;
 
 assign config_dig_cu_prog_ena = (start_programming_q && !sync_inc_counter_en) ? (sync_coefficient_rf_rd_addr<6'd50 ?  (1 << (6'd49-sync_coefficient_rf_rd_addr)) : '0) : '0;
-
+assign conf_sys_stat_reg_LOADING_DONE = ~(sync_coefficient_rf_rd_addr<6'd50);
 
 endmodule
 

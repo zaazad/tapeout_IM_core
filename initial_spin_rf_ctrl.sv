@@ -20,7 +20,10 @@ module initial_spin_rf_ctrl(
     output logic [6:0] initial_spin_rf_a,
     output logic [49:0] initial_spin_rf_d,
     output logic initial_spin_rf_web,
-    output logic [49:0] initial_spin_rf_bweb
+    output logic [49:0] initial_spin_rf_bweb, 
+
+    output logic initial_spin_rf_gpio_fifo_full,
+    output logic initial_spin_rf_gpio_buffer_full
 );
 
 
@@ -53,6 +56,7 @@ begin
         initial_spin_rf_wr_done <= 0;
         initial_spin_sr_counter <= '0;
         initial_spin_sr <= '0;
+        initial_spin_rf_gpio_fifo_full <= '0;
     end
     else if (conf_sys_ctrl_reg_RESET_pos_edge)
     begin
@@ -61,6 +65,7 @@ begin
         initial_spin_rf_wr_done <= '0;
         initial_spin_sr_counter <= '0;
         initial_spin_sr <= '0;
+        initial_spin_rf_gpio_fifo_full <= '0;
     end
     else if (conf_sys_ctrl_reg_INIT && in_GPIO_valid_sampled && ~initial_spin_rf_wr_done && coefficient_rf_wr_done) //signal a valid read_write request
     begin
@@ -73,6 +78,7 @@ begin
                 initial_spin_rf_wr_enable <= '0;
                 initial_spin_rf_wr_done <= '0;
                 initial_spin_rf_wr_addr <= initial_spin_rf_wr_enable ? initial_spin_rf_wr_addr + 7'd1 : initial_spin_rf_wr_addr;
+                initial_spin_rf_gpio_fifo_full <= '0;
             end
             else if (initial_spin_sr_counter == 3'd6)
             begin
@@ -80,6 +86,7 @@ begin
                 initial_spin_sr_counter <= '0;
                 initial_spin_rf_wr_enable <= 1'b1;
                 initial_spin_rf_wr_done <= (initial_spin_rf_wr_addr == conf_reg_total_run_count-8'd1) ? 1'b1 : 1'b0;
+                initial_spin_rf_gpio_fifo_full <= 1'b1;
             end
         end
         else
@@ -87,12 +94,14 @@ begin
             initial_spin_rf_wr_enable <= '0;
             initial_spin_rf_wr_done <= 1'b1;
             initial_spin_sr_counter <= '0;
+            initial_spin_rf_gpio_fifo_full <= '0;
         end
     end
     else
     begin
         initial_spin_rf_wr_addr <= '0;
         initial_spin_rf_wr_enable <= '0;
+        initial_spin_rf_gpio_fifo_full <= '0;
     end
 end
 
@@ -138,4 +147,5 @@ assign initial_spin_rf_bweb = initial_spin_rf_wr_enable ? '0 : '1;
 assign initial_spin_rf_web = ~initial_spin_rf_wr_enable;
 assign initial_spin_rf_d = initial_spin_sr;
 
+assign initial_spin_rf_gpio_buffer_full = ~(initial_spin_rf_wr_addr < 7'd100);
 endmodule

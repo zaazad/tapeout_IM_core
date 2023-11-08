@@ -32,7 +32,10 @@ module coefficient_rf_ctrl(
 
     input [127:0] coefficient_rf_part1_q,
     input [127:0] coefficient_rf_part2_q,
-    input  [49:0] spin_polarity_q
+    input  [49:0] spin_polarity_q,
+
+    output logic coefficient_rf_gpio_fifo_full,
+    output logic coefficient_rf_gpio_buffer_full
 );
 
 
@@ -64,6 +67,7 @@ begin
         coefficient_rf_wr_done <= '0;
         coefficient_sr <= '0;
         coefficient_sr_counter <= '0;
+        coefficient_rf_gpio_fifo_full <= '0;
     end
     else if (conf_sys_ctrl_reg_RESET_pos_edge)
     begin
@@ -72,6 +76,7 @@ begin
         coefficient_rf_wr_done <= '0;
         coefficient_sr <= '0;
         coefficient_sr_counter <= '0;
+        coefficient_rf_gpio_fifo_full <= '0;
     end
     else if (conf_sys_ctrl_reg_INIT && in_GPIO_valid_sampled && ~coefficient_rf_wr_done) //signal a valid read_write request
     begin
@@ -84,6 +89,7 @@ begin
                 coefficient_rf_wr_enable <= '0;
                 coefficient_rf_wr_done <= '0;
                 coefficient_rf_wr_addr <= coefficient_rf_wr_enable ? coefficient_rf_wr_addr + 6'd1 : coefficient_rf_wr_addr;
+                coefficient_rf_gpio_fifo_full <= '0;
              end
             else if(coefficient_sr_counter == 6'd38)
             begin
@@ -91,6 +97,8 @@ begin
                 coefficient_sr_counter <= '0;
                 coefficient_rf_wr_enable <= 1'b1;
                 coefficient_rf_wr_done <= (coefficient_rf_wr_addr == 6'd49) ? 1'b1 : 1'b0;
+                coefficient_rf_gpio_fifo_full <= 1'b1;
+
             end
         end
         else
@@ -98,12 +106,14 @@ begin
             coefficient_rf_wr_enable <= '0;
             coefficient_rf_wr_done <= 1'b1;
             coefficient_sr_counter <= '0;
+            coefficient_rf_gpio_fifo_full <= 1'b0;
         end
     end
     else 
     begin
         coefficient_rf_wr_addr <= '0;
         coefficient_rf_wr_enable <= '0;
+        coefficient_rf_gpio_fifo_full <= '0;
     end
 end
 
@@ -164,5 +174,5 @@ assign coefficients_part_1_tmp = config_dig_spin_prog_ic_q ? (coefficient_rf_rd_
 assign coefficients_part_2_tmp = config_dig_spin_prog_ic_q ? (coefficient_rf_rd_addr<6'd50 ?  coefficient_rf_part2_q : '0) : '0;
 assign spin_polarity_tmp = config_dig_spin_prog_ic_q ? (coefficient_rf_rd_addr<6'd50 ?  spin_polarity_q : '0) : '0;
 
-
+assign coefficient_rf_gpio_buffer_full = ~(coefficient_rf_wr_addr < 6'd50); 
 endmodule

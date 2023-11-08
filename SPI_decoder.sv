@@ -15,13 +15,13 @@ module SPI_decoder (
     output logic [7:0] conf_sys_ctrl_reg_RUN_TIME_INTERVAL, //4 -> 00100
     output logic conf_sys_ctrl_reg_RERUN, //5 -> 00101
 
-    input conf_sys_stat_reg_ERROR, //8 -> 01000
+    //input conf_sys_stat_reg_ERROR, //8 -> 01000
     input conf_sys_stat_reg_FIFO_FULL, //9 -> 01001
     input conf_sys_stat_reg_BUFFER_FULL, //10 -> 01010
-    input conf_sys_stat_reg_SPI_ERR, //11 -> 01011
+    //input conf_sys_stat_reg_SPI_ERR, //11 -> 01011
     input conf_sys_stat_reg_LOADING_DONE, //12 -> 01100
     input conf_sys_stat_reg_RUNNING, //13 -> 01101
-    input conf_sys_stat_reg_SAMPLING, //14 -> 01110
+    //input conf_sys_stat_reg_SAMPLING, //14 -> 01110
 
     output logic [15:0] conf_dig_Ibias_spin_ctrl,//16 -> 10000
     output logic [1:0]  conf_fix_langevin_sel, //17 -> 10001 
@@ -32,7 +32,6 @@ module SPI_decoder (
     output logic [2:0]  conf_dig_langevin_gain_ctrl,//22 -> 10110
     output logic [7:0]  conf_reg_total_run_count, //23 -> 10111
     output logic [7:0]  conf_reg_total_rerun_count, //24 -> 11000
-    output logic [7:0]  conf_reg_test_SPI, //25 -> 11001
     output logic [7:0]  conf_reg_GPIO_DS, //26 -> 11010
     output logic [7:0]  conf_reg_GPIO_PE, //27 -> 11011
     output logic [49:0] conf_reg_bias_en, //28 -> 011100
@@ -47,6 +46,7 @@ e_command config_register_command_q;
 logic [4:0] cfg_reg_transfer_count;
 logic [5:0] config_register_address;
 logic [5:0] config_register_address_q;
+logic [7:0] conf_reg_test_SPI;
 
 
 
@@ -300,14 +300,14 @@ always_comb
         begin
             i_TX_DV = 1'b1;
             case (config_register_address)
-                6'b001000:   i_TX_Byte[0] = conf_sys_stat_reg_ERROR;
+                //6'b001000:   i_TX_Byte[0] = conf_sys_stat_reg_ERROR;
                 6'b001001:   i_TX_Byte[0] = conf_sys_stat_reg_FIFO_FULL;
                 6'b001010:   i_TX_Byte[0] = conf_sys_stat_reg_BUFFER_FULL;
-                6'b001011:   i_TX_Byte[0] = conf_sys_stat_reg_SPI_ERR;
+                //6'b001011:   i_TX_Byte[0] = conf_sys_stat_reg_SPI_ERR;
                 6'b001100:   i_TX_Byte[0] = conf_sys_stat_reg_LOADING_DONE;
                 6'b001101:   i_TX_Byte[0] = conf_sys_stat_reg_RUNNING;
-                6'b001110:   i_TX_Byte[0] = conf_sys_stat_reg_SAMPLING;
-                6'b011011:   i_TX_Byte    = conf_reg_test_SPI; 
+                //6'b001110:   i_TX_Byte[0] = conf_sys_stat_reg_SAMPLING;
+                6'b011001:   i_TX_Byte    = conf_reg_test_SPI;       
             endcase
         end
     end

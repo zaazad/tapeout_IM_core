@@ -21,7 +21,9 @@ module output_spin_rf_ctrl(
     output logic [7:0]  out_GPIO,
     output logic        out_GPIO_valid,
     output logic        GPIO_IE,
-    output logic        GPIO_OEN
+    output logic        GPIO_OEN,
+
+    output logic output_spin_rf_gpio_buffer_full
 );
 
 
@@ -143,5 +145,7 @@ assign out_GPIO = output_spin_rf_rd_enable  ? ((output_spin_sr_counter == 3'd0) 
 
 assign GPIO_IE  = (out_GPIO_valid || final_run) ? 1'b0 : 1'b1;
 assign GPIO_OEN = (out_GPIO_valid || final_run) ? 1'b0 : 1'b1;
+
+assign output_spin_rf_gpio_buffer_full = ~(output_spin_rf_wr_addr < 8'd200);
 
 endmodule

@@ -60,8 +60,7 @@ logic conf_sys_ctrl_reg_RESET, conf_sys_ctrl_reg_INIT, conf_sys_ctrl_reg_LOAD, c
 logic [7:0] conf_sys_ctrl_reg_RUN_TIME_INTERVAL;
 
 //System status registers 8 -> 15
-logic conf_sys_stat_reg_ERROR, conf_sys_stat_reg_FIFO_FULL, conf_sys_stat_reg_BUFFER_FULL, conf_sys_stat_reg_SPI_ERR,
-      conf_sys_stat_reg_LOADING_DONE, conf_sys_stat_reg_RUNNING, conf_sys_stat_reg_SAMPLING;
+logic conf_sys_stat_reg_LOADING_DONE;
 
 logic [15:0] conf_dig_Ibias_spin_ctrl;//16 -> 10000
 //(00 none, 01 langevine, 10 spin fix, 11 both) ==> this controls dig_langevin_ena and dig_spin_fix_ena
@@ -73,7 +72,7 @@ logic [1:0]  conf_dig_spin_fix_polarity;//21 -> 10101
 logic [2:0]  conf_dig_langevin_gain_ctrl;//22 -> 10110
 logic [7:0]  conf_reg_total_run_count; //23 -> 10111
 logic [7:0]  conf_reg_total_rerun_count; //24 -> 11000
-logic [7:0]  conf_reg_test_SPI; //25 -> 11001
+//logic [7:0]  conf_reg_test_SPI; //25 -> 11001 // internal to decoder not used outside
 logic [7:0]  conf_reg_GPIO_DS; //26 -> 11010
 logic [7:0]  conf_reg_GPIO_PE; //27 -> 11011
 logic [49:0] conf_reg_bias_en; // 28 -> 11100
@@ -118,6 +117,9 @@ logic [49:0] spin_initial;
 
 logic [7:0]  out_GPIO_rf;
 logic        out_GPIO_valid_rf;
+logic coefficient_rf_gpio_fifo_full, coefficient_rf_gpio_buffer_full;
+logic initial_spin_rf_gpio_fifo_full, initial_spin_rf_gpio_buffer_full;
+logic output_spin_rf_gpio_buffer_full;
 ////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////Control Unit/////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -131,7 +133,6 @@ logic config_dig_spin_fix_ena;
 logic config_dig_langevin_ena;
 logic [15:0] config_dig_langevin_res_bank_ctrl;
 logic final_run;
-
 ////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////Submodules Instantiation//////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -206,13 +207,11 @@ SPI_decoder     SPI_decoder_instance (
     .conf_sys_ctrl_reg_RERUN(conf_sys_ctrl_reg_RERUN),
     .conf_sys_ctrl_reg_RUN_TIME_INTERVAL(conf_sys_ctrl_reg_RUN_TIME_INTERVAL),
 
-    .conf_sys_stat_reg_ERROR(conf_sys_stat_reg_ERROR), 
-    .conf_sys_stat_reg_FIFO_FULL(conf_sys_stat_reg_FIFO_FULL), 
-    .conf_sys_stat_reg_BUFFER_FULL(conf_sys_stat_reg_BUFFER_FULL), 
-    .conf_sys_stat_reg_SPI_ERR(conf_sys_stat_reg_SPI_ERR),
+    .conf_sys_stat_reg_FIFO_FULL(initial_spin_rf_gpio_fifo_full || coefficient_rf_gpio_fifo_full), 
+    .conf_sys_stat_reg_BUFFER_FULL(initial_spin_rf_gpio_buffer_full || output_spin_rf_gpio_buffer_full || coefficient_rf_gpio_buffer_full), 
     .conf_sys_stat_reg_LOADING_DONE(conf_sys_stat_reg_LOADING_DONE), 
-    .conf_sys_stat_reg_RUNNING(conf_sys_stat_reg_RUNNING), 
-    .conf_sys_stat_reg_SAMPLING(conf_sys_stat_reg_SAMPLING),
+    .conf_sys_stat_reg_RUNNING(~final_run), 
+    
     .conf_dig_Ibias_spin_ctrl(conf_dig_Ibias_spin_ctrl),
     .conf_fix_langevin_sel(conf_fix_langevin_sel),
     .conf_reg_GPIO_offest(conf_reg_GPIO_offest),
@@ -222,7 +221,6 @@ SPI_decoder     SPI_decoder_instance (
     .conf_dig_langevin_gain_ctrl(conf_dig_langevin_gain_ctrl),
     .conf_reg_total_run_count(conf_reg_total_run_count),
     .conf_reg_total_rerun_count(conf_reg_total_rerun_count),
-    .conf_reg_test_SPI(conf_reg_test_SPI),
     .conf_reg_GPIO_DS(conf_reg_GPIO_DS),
     .conf_reg_GPIO_PE(conf_reg_GPIO_PE),
     .conf_reg_bias_en(conf_reg_bias_en),
@@ -278,7 +276,10 @@ coefficient_rf_ctrl     coefficient_rf_ctrl_instance (
     .spin_polarity_tmp(spin_polarity_tmp),
     .coefficient_rf_part1_q(coefficient_rf_part1_q),
     .coefficient_rf_part2_q(coefficient_rf_part2_q),
-    .spin_polarity_q(spin_polarity_q)
+    .spin_polarity_q(spin_polarity_q),
+
+    .coefficient_rf_gpio_fifo_full(coefficient_rf_gpio_fifo_full),
+    .coefficient_rf_gpio_buffer_full(coefficient_rf_gpio_buffer_full)
 );
 
 initial_spin_rf_ctrl    initial_spin_rf_ctrl_instance(
@@ -301,7 +302,10 @@ initial_spin_rf_ctrl    initial_spin_rf_ctrl_instance(
     .initial_spin_rf_a(initial_spin_rf_a),
     .initial_spin_rf_d(initial_spin_rf_d),
     .initial_spin_rf_web(initial_spin_rf_web),
-    .initial_spin_rf_bweb(initial_spin_rf_bweb)
+    .initial_spin_rf_bweb(initial_spin_rf_bweb),
+
+    .initial_spin_rf_gpio_fifo_full(initial_spin_rf_gpio_fifo_full),
+    .initial_spin_rf_gpio_buffer_full(initial_spin_rf_gpio_buffer_full)
 );
 
     
@@ -327,7 +331,9 @@ output_spin_rf_ctrl     output_spin_rf_ctrl_instance(
     .out_GPIO(out_GPIO_rf),
     .out_GPIO_valid(out_GPIO_valid_rf),
     .GPIO_IE(GPIO_IE),
-    .GPIO_OEN(GPIO_OEN)
+    .GPIO_OEN(GPIO_OEN),
+
+    .output_spin_rf_gpio_buffer_full(output_spin_rf_gpio_buffer_full)
 );
 
 
@@ -358,7 +364,8 @@ central_control_unit    central_control_unit_instance(
     .dig_anneal_sch_reg(dig_anneal_sch_reg),
     .config_dig_langevin_ena(config_dig_langevin_ena),
     .config_dig_langevin_res_bank_ctrl(config_dig_langevin_res_bank_ctrl),
-    .final_run(final_run)
+    .final_run(final_run),
+    .conf_sys_stat_reg_LOADING_DONE(conf_sys_stat_reg_LOADING_DONE)
 );
 
 
