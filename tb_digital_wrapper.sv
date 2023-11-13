@@ -37,8 +37,7 @@ logic dig_spin_fix_ena; //set to one, 3 cycles after dig_spin_CCII_ena, active f
 //logic [2:0] dig_noise_sample_clk_mux; //Generates 0, 1, 2, 3, 4, 5, 6, 7, 7, 7 while dig_spin_fix_ena is set
 logic dig_spin_read_out_ena;//one cycle before end of run/dig_spin_CCII_ena ==> the output spin is ready one cycle later
 logic [15:0] dig_Ibias_spin_ctrl;
-logic        dig_noise_sample_clk_sel;
-logic [1:0]  dig_spin_fix_polarity;
+logic        dig_spin_fix_polarity;
 logic [2:0]  dig_langevin_gain_ctrl;
 logic        dig_anneal_sch_reg;
 logic        dig_langevin_ena;
@@ -83,7 +82,7 @@ digital_wrapper DUT
     .dig_spin_fix_ena(dig_spin_fix_ena),
     .dig_spin_read_out_ena(dig_spin_read_out_ena),
     .dig_Ibias_spin_ctrl(dig_Ibias_spin_ctrl),
-    .dig_noise_sample_clk_sel(dig_noise_sample_clk_sel),
+    //.dig_noise_sample_clk_sel(dig_noise_sample_clk_sel),
     .dig_spin_fix_polarity(dig_spin_fix_polarity),
     .dig_langevin_gain_ctrl(dig_langevin_gain_ctrl),
     .dig_anneal_sch_reg(dig_anneal_sch_reg),

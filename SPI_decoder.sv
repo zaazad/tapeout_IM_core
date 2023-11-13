@@ -26,9 +26,9 @@ module SPI_decoder (
     output logic [15:0] conf_dig_Ibias_spin_ctrl,//16 -> 10000
     output logic [1:0]  conf_fix_langevin_sel, //17 -> 10001 
     output logic [23:0] conf_reg_GPIO_offest, //18 -> 10010 
-    output logic        conf_dig_noise_sample_clk_sel,//19 -> 10011
+    //output logic        conf_dig_noise_sample_clk_sel,//19 -> 10011
     output logic [127:0] conf_dig_anneal_sch_reg,//20 -> 10100
-    output logic [1:0]  conf_dig_spin_fix_polarity,//21 -> 10101
+    output logic        conf_dig_spin_fix_polarity,//21 -> 10101
     output logic [2:0]  conf_dig_langevin_gain_ctrl,//22 -> 10110
     output logic [7:0]  conf_reg_total_run_count, //23 -> 10111
     output logic [7:0]  conf_reg_total_rerun_count, //24 -> 11000
@@ -80,7 +80,7 @@ begin
         conf_sys_ctrl_reg_RERUN <= '0;
         conf_dig_Ibias_spin_ctrl <= '0;
         conf_fix_langevin_sel <= '0;
-        conf_dig_noise_sample_clk_sel <= '0;
+        //conf_dig_noise_sample_clk_sel <= '0;
         conf_dig_spin_fix_polarity<= '0;
         conf_dig_langevin_gain_ctrl <= '0;
         conf_dig_anneal_sch_reg <= '0;
@@ -98,17 +98,6 @@ begin
             else if(cfg_reg_transfer_count == 5'd1) 
             begin
                 conf_sys_ctrl_reg_RUN_TIME_INTERVAL <= o_RX_Byte[7:0];
-                cfg_reg_transfer_count <= '0;
-            end
-        end
-
-        6'b010101:
-        begin
-            if(cfg_reg_transfer_count == 5'd0)
-                cfg_reg_transfer_count <= cfg_reg_transfer_count + 5'd1;
-            else if(cfg_reg_transfer_count == 5'd1) 
-            begin
-                conf_dig_spin_fix_polarity <= o_RX_Byte[1:0];
                 cfg_reg_transfer_count <= '0;
             end
         end
@@ -275,8 +264,9 @@ begin
             6'b000001:   conf_sys_ctrl_reg_INIT <= 1'b1;
             6'b000010:   conf_sys_ctrl_reg_LOAD <= 1'b1;
             6'b000011:   conf_sys_ctrl_reg_RUN <= 1'b1;
-            6'b010011:   conf_dig_noise_sample_clk_sel <= 1'b1;
+            //6'b010011:   conf_dig_noise_sample_clk_sel <= 1'b1;
             6'b000101:   conf_sys_ctrl_reg_RERUN <= 1'b1;
+            6'b010101:   conf_dig_spin_fix_polarity <= 1'b1;
         endcase
     end
     else if((config_register_command == RESET) && o_RX_DV)
@@ -286,8 +276,9 @@ begin
             6'b000001:   conf_sys_ctrl_reg_INIT <= 1'b0;
             6'b000010:   conf_sys_ctrl_reg_LOAD <= 1'b0;
             6'b000011:   conf_sys_ctrl_reg_RUN <= 1'b0;
-            6'b010011:   conf_dig_noise_sample_clk_sel <= 1'b0;
+           // 6'b010011:   conf_dig_noise_sample_clk_sel <= 1'b0;
             6'b000101:   conf_sys_ctrl_reg_RERUN <= 1'b0;
+            6'b010101:   conf_dig_spin_fix_polarity <= 1'b0;
         endcase
     end
 end

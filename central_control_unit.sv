@@ -49,6 +49,9 @@ logic [5:0]   sync_coefficient_rf_rd_addr;
 logic start_programming, start_programming_q;
 logic config_dig_spin_pre_prog_ic_q, config_dig_spin_pre_prog_ic_qq;
 
+logic spin_fix_ena;
+logic [7:0] ACLK_counter_spin_fix;
+
 /////////////posedge conf_sys_ctrl_reg_INIT
 logic conf_sys_ctrl_reg_RESET_q;
 always_ff @(posedge i_clk or negedge i_rstn) begin
@@ -235,19 +238,19 @@ always_ff @(posedge i_clk or negedge i_rstn)
       end
 
 
-/*always_ff @(posedge ACLK or negedge i_rstn)
-    if(~i_rstn)
-        config_dig_spin_fix_ena_cnt <= '0;
-    else if (conf_sys_ctrl_reg_RESET_pos_edge)
-        config_dig_spin_fix_ena_cnt <= '0;
-    else if (config_dig_spin_fix_ena && config_dig_spin_fix_ena_cnt != 7'd127)
-        config_dig_spin_fix_ena_cnt <=  config_dig_spin_fix_ena_cnt + 7'd1;
-    else if (~config_dig_spin_fix_ena)
-        config_dig_spin_fix_ena_cnt <= '0;
-  
-assign dig_anneal_sch_reg = config_dig_spin_fix_ena ? conf_dig_anneal_sch_reg[config_dig_spin_fix_ena_cnt] : 0;*/
+assign spin_fix_ena = config_dig_spin_fix_ena;
 
-logic [127:0] conf_dig_anneal_sch_reg_shift;
+always_ff @(posedge ACLK or negedge i_rstn)
+    if(~i_rstn)
+        ACLK_counter_spin_fix <= '0;
+    else if (spin_fix_ena && ACLK_counter_spin_fix != 7'd127)
+        ACLK_counter_spin_fix <=  ACLK_counter_spin_fix + 7'd1;
+    else //if (~spin_fix_ena)
+        ACLK_counter_spin_fix <= '0;
+  
+assign dig_anneal_sch_reg = spin_fix_ena ? conf_dig_anneal_sch_reg[ACLK_counter_spin_fix] : 0;
+
+/*logic [127:0] conf_dig_anneal_sch_reg_shift;
 assign dig_anneal_sch_reg = config_dig_spin_fix_ena ? conf_dig_anneal_sch_reg_shift[0] : 1'b0;
 
 always_ff @(posedge ACLK or negedge i_rstn)
@@ -258,7 +261,7 @@ always_ff @(posedge ACLK or negedge i_rstn)
     else if (config_dig_spin_fix_ena)
         conf_dig_anneal_sch_reg_shift <= conf_dig_anneal_sch_reg_shift >> 1;
     else if (~config_dig_spin_fix_ena)
-        conf_dig_anneal_sch_reg_shift <= conf_dig_anneal_sch_reg;
+        conf_dig_anneal_sch_reg_shift <= conf_dig_anneal_sch_reg;*/
 
 ////////////config_dig_spin_read_out_ena: enable this one cycle before run/rerun ends 
 always_ff @(posedge i_clk or negedge i_rstn)

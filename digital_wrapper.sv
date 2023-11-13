@@ -43,15 +43,14 @@ module digital_wrapper
 
     //Static control registers
     output logic [15:0] dig_Ibias_spin_ctrl, 
-    output logic        dig_noise_sample_clk_sel,
-    output logic [1:0]  dig_spin_fix_polarity,
+    //output logic        dig_noise_sample_clk_sel,//Yongchao: not needed anymore
+    output logic        dig_spin_fix_polarity,
     output logic [2:0]  dig_langevin_gain_ctrl,
     output logic [49:0] bias_en,
     output logic [5:0] coupler_cal_bias_ctrl
 
    );
 
-   
 /////////////////////////////////////////////////////////////////////////
 ///////////////////////Config and Status Registers//////////////////////
 ////////////////////////////////////////////////////////////////////////
@@ -66,9 +65,9 @@ logic [15:0] conf_dig_Ibias_spin_ctrl;//16 -> 10000
 //(00 none, 01 langevine, 10 spin fix, 11 both) ==> this controls dig_langevin_ena and dig_spin_fix_ena
 logic [1:0]  conf_fix_langevin_sel; //17 -> 10001 
 logic [23:0] conf_reg_GPIO_offest; //18 -> 10010 
-logic        conf_dig_noise_sample_clk_sel;//19 -> 10011
+//logic        conf_dig_noise_sample_clk_sel;//19 -> 10011
 logic [127:0] conf_dig_anneal_sch_reg;//20 -> 10100
-logic [1:0]  conf_dig_spin_fix_polarity;//21 -> 10101
+logic        conf_dig_spin_fix_polarity;//21 -> 10101
 logic [2:0]  conf_dig_langevin_gain_ctrl;//22 -> 10110
 logic [7:0]  conf_reg_total_run_count; //23 -> 10111
 logic [7:0]  conf_reg_total_rerun_count; //24 -> 11000
@@ -215,7 +214,7 @@ SPI_decoder     SPI_decoder_instance (
     .conf_dig_Ibias_spin_ctrl(conf_dig_Ibias_spin_ctrl),
     .conf_fix_langevin_sel(conf_fix_langevin_sel),
     .conf_reg_GPIO_offest(conf_reg_GPIO_offest),
-    .conf_dig_noise_sample_clk_sel(conf_dig_noise_sample_clk_sel),
+    //.conf_dig_noise_sample_clk_sel(conf_dig_noise_sample_clk_sel),
     .conf_dig_anneal_sch_reg(conf_dig_anneal_sch_reg),
     .conf_dig_spin_fix_polarity(conf_dig_spin_fix_polarity),
     .conf_dig_langevin_gain_ctrl(conf_dig_langevin_gain_ctrl),
@@ -384,7 +383,7 @@ assign dig_cu_prog_ena = config_dig_cu_prog_ena;
 assign dig_spin_CCII_ena = config_dig_spin_CCII_ena;
 assign dig_spin_fix_ena = config_dig_spin_fix_ena;
 assign dig_Ibias_spin_ctrl = conf_dig_Ibias_spin_ctrl;
-assign dig_noise_sample_clk_sel = conf_dig_noise_sample_clk_sel;
+//assign dig_noise_sample_clk_sel = conf_dig_noise_sample_clk_sel;
 assign dig_spin_fix_polarity = conf_dig_spin_fix_polarity;
 assign dig_langevin_gain_ctrl = conf_dig_langevin_gain_ctrl;
 assign dig_langevin_ena = config_dig_langevin_ena;
